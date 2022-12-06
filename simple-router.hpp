@@ -127,6 +127,7 @@ SimpleRouter::getArp() const
   return m_arp;
 }
 
+bool isRightMac(const uint8_t * mac, const Interface * iface);
 } // namespace simple_router
 
 #endif // SIMPLE_ROUTER_SIMPLE_ROUTER_HPP

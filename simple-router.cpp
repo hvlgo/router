@@ -38,7 +38,41 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
   std::cerr << getRoutingTable() << std::endl;
 
   // FILL THIS IN
+  if (packet.size() < sizeof(ethernet_hdr)) {
+    std::cerr << "Received packet, but the header is truncated, ignoring" << std::endl;
+    return;
+  }
 
+  ethernet_hdr* e_hdr;
+  e_hdr = (ethernet_hdr*) packet.data();
+
+  if (!SimpleRouter::isRightMac(e_hdr->ether_dhost, iface)) {
+    std::cerr << "Received packet, but MAC address is not broadcast address or \
+    address of corresponding interface, ignoring" << std::endl;
+    return;
+  }
+
+  if (ntohs(e_hdr->ether_type) == ethertype_arp) {
+    std::cerr << "this is arp" << std::endl;
+  }
+  else if (ntohs(e_hdr->ether_type) == ethertype_ip) {
+    std::cerr << "this is ipv4" << std::endl;
+  }
+  else {
+    std::cerr << "Received packet, but type is not arp or ipv4, ignoring" << std::endl;
+    return;
+  }
+}
+
+bool SimpleRouter::isRightMac(const uint8_t * mac, const Interface * iface)
+{
+  uint8_t broadcast_mac[ETHER_ADDR_LEN];
+  for (int i = 0; i < ETHER_ADDR_LEN; i++) {
+    broadcast_mac[i] = 0xffU;
+  }
+  if (memcmp(broadcast_mac, mac, ETHER_ADDR_LEN) == 0)
+    return true;
+  return memcmp(iface->addr.data(), mac, ETHER_ADDR_LEN) == 0;
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
