@@ -76,7 +76,7 @@ bool isRightMac(const uint8_t * mac, const Interface * iface)
   return memcmp(iface->addr.data(), mac, ETHER_ADDR_LEN) == 0;
 }
 
-void handleArpPacket(uint8_t * arp_packet, const Interface * iface, uint8_t * s_mac)
+void SimpleRouter::handleArpPacket(uint8_t * arp_packet, const Interface * iface, uint8_t * s_mac)
 {
   arp_hdr* arp_h;
   arp_h = (arp_hdr *) arp_packet;
