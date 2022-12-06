@@ -54,6 +54,7 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
 
   if (ntohs(e_hdr->ether_type) == ethertype_arp) {
     std::cerr << "this is arp" << std::endl;
+    handleArpPacket(packet.data() + sizeof(ethernet_hdr), iface, e_hdr->ether_shost);
   }
   else if (ntohs(e_hdr->ether_type) == ethertype_ip) {
     std::cerr << "this is ipv4" << std::endl;
@@ -74,6 +75,34 @@ bool isRightMac(const uint8_t * mac, const Interface * iface)
     return true;
   return memcmp(iface->addr.data(), mac, ETHER_ADDR_LEN) == 0;
 }
+
+void handleArpPacket(uint8_t * arp_packet, const Interface * iface, uint8_t * s_mac)
+{
+  arp_hdr* arp_h;
+  arp_h = (arp_hdr *) arp_packet;
+
+  if (ntohs(arp_h->arp_hrd) != arp_hrd_ethernet) {
+    std::cerr << "Received arp packet, but format of hardware address is not ethernet, ignoring" << std::endl;
+    return;
+  }
+
+  uint16_t opcode = arp_h->arp_op;
+  if (ntohs(opcode) == arp_op_request) {
+    std::cerr << arp_h->arp_tip << ' ' << ntohl(arp_h->arp_tip) << ' ' << iface->ip << std::endl;
+    if (arp_h->arp_tip != iface->ip) {
+      return;
+    }
+    return;
+  }
+  else if (ntohs(opcode) == arp_op_reply) {
+
+  }
+  else {
+    std::cerr << "Received arp packet, but opcode is unknown, ignoring" << std::endl;
+    return;
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
