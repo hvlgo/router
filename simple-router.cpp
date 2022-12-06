@@ -46,7 +46,7 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
   ethernet_hdr* e_hdr;
   e_hdr = (ethernet_hdr*) packet.data();
 
-  if (!SimpleRouter::isRightMac(e_hdr->ether_dhost, iface)) {
+  if (!isRightMac(e_hdr->ether_dhost, iface)) {
     std::cerr << "Received packet, but MAC address is not broadcast address or \
     address of corresponding interface, ignoring" << std::endl;
     return;
@@ -64,7 +64,7 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
   }
 }
 
-bool SimpleRouter::isRightMac(const uint8_t * mac, const Interface * iface)
+bool isRightMac(const uint8_t * mac, const Interface * iface)
 {
   uint8_t broadcast_mac[ETHER_ADDR_LEN];
   for (int i = 0; i < ETHER_ADDR_LEN; i++) {
