@@ -58,6 +58,7 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
   }
   else if (ntohs(e_hdr->ether_type) == ethertype_ip) {
     std::cerr << "this is ipv4" << std::endl;
+    
   }
   else {
     std::cerr << "Received packet, but type is not arp or ipv4, ignoring" << std::endl;
@@ -88,7 +89,6 @@ void SimpleRouter::handleArpPacket(const uint8_t * arp_packet, const Interface *
 
   uint16_t opcode = arp_h->arp_op;
   if (ntohs(opcode) == arp_op_request) {
-    std::cerr << arp_h->arp_tip << ' ' << ntohl(arp_h->arp_tip) << ' ' << iface->ip << std::endl;
     if (arp_h->arp_tip != iface->ip) {
       std::cerr << "Received arp packet, but dst ip incorrect, ignoring" << std::endl;
       return;

@@ -32,7 +32,50 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
 {
 
   // FILL THIS IN
+  for (auto iter = m_cacheEntries.begin(); iter != m_cacheEntries.end(); ) {
+    if (!(*iter)->isValid) {
+      iter = m_cacheEntries.erase(iter);
+      continue;
+    }
+    iter++;
+  }
 
+  uint8_t broadcast_mac[ETHER_ADDR_LEN];
+  for (int i = 0; i < ETHER_ADDR_LEN; i++) {
+    broadcast_mac[i] = 0xffU;
+  }
+
+  for (auto iter = m_arpRequests.begin(); iter != m_arpRequests.end(); ) {
+    if ((*iter)->nTimesSent >= MAX_SENT_TIME) {
+      iter = m_arpRequests.erase(iter);
+      // TODO: send icmp host unreachable
+      continue;
+    }
+
+    uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(arp_hdr)];
+    Interface * s_interface = m_router.findIfaceByName((*iter)->packets.front().iface);
+    ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
+    memcpy(out_e_hdr->ether_dhost, broadcast_mac, ETHER_ADDR_LEN);
+    memcpy(out_e_hdr->ether_shost, s_interface->addr.data(), ETHER_ADDR_LEN);
+    out_e_hdr->ether_type = htons(ethertype_arp);
+    arp_hdr * out_arp_h = (arp_hdr *) (out_buf + sizeof(ethernet_hdr));
+    out_arp_h->arp_hrd = htons(arp_hrd_ethernet);
+    out_arp_h->arp_pro = htons(ethertype_ip);
+    out_arp_h->arp_hln = ETHER_ADDR_LEN;
+    out_arp_h->arp_pln = sizeof(uint32_t);
+    out_arp_h->arp_op = htons(arp_op_request);
+    memcpy(out_arp_h->arp_sha, s_interface->addr.data(), ETHER_ADDR_LEN);
+    out_arp_h->arp_sip = s_interface->ip;
+    memcpy(out_arp_h->arp_tha, broadcast_mac, ETHER_ADDR_LEN);
+    out_arp_h->arp_tip = (*iter)->ip;
+
+    Buffer out_packet(out_buf, out_buf + sizeof(out_buf));
+    m_router.sendPacket(out_packet, s_interface->name);
+
+    (*iter)->nTimesSent++;
+    (*iter)->timeSent = std::chrono::steady_clock::now();
+    iter++;
+  }
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
