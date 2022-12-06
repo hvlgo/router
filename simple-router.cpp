@@ -90,12 +90,40 @@ void SimpleRouter::handleArpPacket(const uint8_t * arp_packet, const Interface *
   if (ntohs(opcode) == arp_op_request) {
     std::cerr << arp_h->arp_tip << ' ' << ntohl(arp_h->arp_tip) << ' ' << iface->ip << std::endl;
     if (arp_h->arp_tip != iface->ip) {
+      std::cerr << "Received arp packet, but dst ip incorrect, ignoring" << std::endl;
       return;
     }
+
+    uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(arp_hdr)];
+    ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
+    out_e_hdr->ether_type = htons(ethertype_arp);
+    memcpy(out_e_hdr->ether_dhost, s_mac, ETHER_ADDR_LEN);
+    memcpy(out_e_hdr->ether_shost, iface->addr.data(), ETHER_ADDR_LEN);
+
+    arp_hdr * out_arp_h = (arp_hdr *) (out_buf + sizeof(ethernet_hdr));
+    memcpy(out_arp_h, arp_h, sizeof(arp_hdr));
+    out_arp_h->arp_op = htons(arp_op_reply);
+    memcpy(out_arp_h->sha, iface->addr.data(), ETHER_ADDR_LEN);
+    out_arp_h->sip = iface->ip;
+    memcpy(out_arp_h->arp_tha, arp_h->arp_sha, ETHER_ADDR_LEN);
+    out_arp_h->tip = arp_h->arp_sip;
+
+    const Buffer out_packet(out_buf, out_buf + sizeof(out_buf));
+    SimpleRouter::sendPacket(out_packet, iface->name);
     return;
   }
   else if (ntohs(opcode) == arp_op_reply) {
-
+    uint32_t arp_s_ip = arp_h->sip;
+    uint8_t * arp_s_mac = arp_h->sha;
+    Buffer arp_s_mac_buf(arp_s_mac, arp_s_mac + ETHER_ADDR_LEN);
+    std::shared_ptr<ArpRequest> arp_request = m_arp.insertArpEntry(arp_s_mac_buf, arp_s_ip);
+    for (PendingPacket pending_packet : arp_request->packets) {
+      ethernet_hdr * out_e_hdr = (ethernet_hdr *) pending_packet.packet.data();
+      memcpy(out_e_hdr->ether_dhost, arp_s_mac, ETHER_ADDR_LEN);
+      SimpleRouter::sendPacket(pending_packet.packet, pending_packet.iface);
+    }
+    m_arp.removeRequest(arp_request);
+    return;
   }
   else {
     std::cerr << "Received arp packet, but opcode is unknown, ignoring" << std::endl;
