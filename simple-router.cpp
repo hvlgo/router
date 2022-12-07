@@ -51,13 +51,13 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
     address of corresponding interface, ignoring" << std::endl;
     return;
   }
-
+  Buffer payload(packet.data() + sizeof(ethernet_hdr), packet.data() + packet.size());
   if (ntohs(e_hdr->ether_type) == ethertype_arp) {
-    SimpleRouter::handleArpPacket(packet.data() + sizeof(ethernet_hdr), iface, e_hdr->ether_shost);
+    SimpleRouter::handleArpPacket(payload, iface, e_hdr->ether_shost);
   }
   else if (ntohs(e_hdr->ether_type) == ethertype_ip) {
     print_hdrs(packet);
-    SimpleRouter::handleIpPacket(packet.data() + sizeof(ethernet_hdr), iface, e_hdr->ether_shost);
+    SimpleRouter::handleIpPacket(payload, iface, e_hdr->ether_shost);
   }
   else {
     std::cerr << "Received packet, but type is not arp or ipv4, ignoring" << std::endl;
@@ -76,10 +76,14 @@ bool isRightMac(const uint8_t * mac, const Interface * iface)
   return memcmp(iface->addr.data(), mac, ETHER_ADDR_LEN) == 0;
 }
 
-void SimpleRouter::handleArpPacket(const uint8_t * arp_packet, const Interface * iface, uint8_t * s_mac)
+void SimpleRouter::handleArpPacket(const Buffer& arp_packet, const Interface * iface, uint8_t * s_mac)
 {
+  if (arp_packet.size() < sizeof(arp_hdr)) {
+    std::cerr << "Received arp packet, but the header is truncated, ignoring" << std::endl;
+    return;
+  }
   arp_hdr* arp_h;
-  arp_h = (arp_hdr *) arp_packet;
+  arp_h = (arp_hdr *) arp_packet.data();
 
   if (ntohs(arp_h->arp_hrd) != arp_hrd_ethernet) {
     std::cerr << "Received arp packet, but format of hardware address is not ethernet, ignoring" << std::endl;
@@ -130,13 +134,13 @@ void SimpleRouter::handleArpPacket(const uint8_t * arp_packet, const Interface *
   }
 }
 
-void SimpleRouter::handleIpPacket(const uint8_t * ip_packet, const Interface * iface, uint8_t * s_mac) {
+void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * iface, uint8_t * s_mac) {
   if (ip_packet.size() < sizeof(ip_hdr)) {
     std::cerr << "Received ip packet, but the header is truncated, ignoring" << std::endl;
     return;
   }
 
-  ip_hdr * ip_h = (ip_hdr *) ip_packet;
+  ip_hdr * ip_h = (ip_hdr *) ip_packet.data();
   uint16_t origin_cksum = ip_h->ip_sum;
   ip_h->ip_sum = 0x0;
   if (cksum(ip_h, sizeof(ip_hdr)) != origin_cksum) {
@@ -150,7 +154,7 @@ void SimpleRouter::handleIpPacket(const uint8_t * ip_packet, const Interface * i
       return;
     }
     else if (ip_h->ip_p == ip_protocol_icmp) {
-      icmp_hdr * icmp_h = (icmp_hdr *) (ip_packet + sizeof(ip_hdr));
+      icmp_hdr * icmp_h = (icmp_hdr *) (ip_packet.data() + sizeof(ip_hdr));
       if (icmp_h->icmp_type == icmp_echo) {
         
         return;
@@ -176,11 +180,11 @@ void SimpleRouter::handleIpPacket(const uint8_t * ip_packet, const Interface * i
     return;
   }
 
-  uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(ip_packet)];
+  uint8_t out_buf[sizeof(ethernet_hdr) + ip_packet.size()];
   ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
   memcpy(out_e_hdr->ether_shost, result_iface->addr.data(), ETHER_ADDR_LEN);
   out_e_hdr->ether_type = htons(ethertype_ip);
-  memcpy(out_buf + sizeof(ethernet_hdr), ip_packet, sizeof(ip_packet));
+  memcpy(out_buf + sizeof(ethernet_hdr), ip_packet.data(), ip_packet.size());
   ip_hdr * out_ip_h = (ip_hdr *) (out_buf + sizeof(ethernet_hdr));
   out_ip_h->ip_ttl--;
   out_ip_h->ip_sum = 0x0;

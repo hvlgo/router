@@ -43,9 +43,9 @@ public:
   void
   handlePacket(const Buffer& packet, const std::string& inIface);
 
-  void handleArpPacket(const uint8_t * arp_packet, const Interface * iface, uint8_t * s_mac);
+  void handleArpPacket(const Buffer& arp_packet, const Interface * iface, uint8_t * s_mac);
 
-  void handleIpPacket(const uint8_t * ip_packet, const Interface * iface, uint8_t * s_mac);
+  void handleIpPacket(const Buffer& ip_packet, const Interface * iface, uint8_t * s_mac);
 
   /**
    * USE THIS METHOD TO SEND PACKETS
