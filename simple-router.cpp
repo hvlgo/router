@@ -247,6 +247,7 @@ void SimpleRouter::sendICMPt3Packet(ip_hdr * ip_h, uint8_t out_icmp_type, uint8_
   icmp_t3_hdr * out_icmp_h = (icmp_t3_hdr *) (out_buf + sizeof(ethernet_hdr) + sizeof(ip_hdr));
   out_icmp_h->icmp_type = out_icmp_type;
   out_icmp_h->icmp_code = out_icmp_code;
+  memcpy(out_icmp_h->data, ip_h, ICMP_DATA_SIZE);
   out_icmp_h->icmp_sum = 0x00;
   out_icmp_h->icmp_sum = cksum(out_icmp_h, sizeof(icmp_t3_hdr));
   Buffer out_packet(out_buf, out_buf + sizeof(out_buf));
