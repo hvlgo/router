@@ -55,10 +55,6 @@ namespace simple_router {
 
 using Buffer = std::vector<unsigned char>;
 
-enum icmp_type {
-  icmp_echo = 0x08,
-};
-
 /* Structure of a ICMP header
  */
 struct icmp_hdr {

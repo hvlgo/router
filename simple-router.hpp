@@ -45,7 +45,9 @@ public:
 
   void handleArpPacket(const Buffer& arp_packet, const Interface * iface, uint8_t * s_mac);
 
-  void handleIpPacket(const Buffer& ip_packet, const Interface * iface, uint8_t * s_mac);
+  void handleIpPacket(const Buffer& ip_packet, const Interface * iface, uint8_t * s_mac, uint8_t * d_mac);
+
+  void sendICMPt3Packet(ip_hdr * ip_h, uint8_t out_icmp_type, uint8_t out_icmp_code, const Interface * iface, uint8_t * s_mac, uint8_t * d_mac);
 
   /**
    * USE THIS METHOD TO SEND PACKETS
