@@ -158,15 +158,15 @@ void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * ifa
       return;
     }
     else if (ip_h->ip_p == ip_protocol_icmp) {
-if (((icmp_hdr *) (ip_packet.data() + sizeof(ip_hdr)))->icmp_type == 0x08) {
-        icmp_echo_hdr * icmp_h = (icmp_echo_hdr *) (ip_packet.data() + sizeof(ip_hdr));
+      if (((icmp_hdr *) (ip_packet.data() + sizeof(ip_hdr)))->icmp_type == 0x08) {
+        icmp_hdr * icmp_h = (icmp_hdr *) (ip_packet.data() + sizeof(ip_hdr));
         uint16_t origin_icmp_cksum = icmp_h->icmp_sum;
         icmp_h->icmp_sum = 0x0;
-        if (cksum(icmp_h, sizeof(icmp_echo_hdr)) != origin_icmp_cksum) {
+        if (cksum(ip_packet.data() + sizeof(ip_hdr), ip_packet.size() - sizeof(ip_hdr)) != origin_icmp_cksum) {
           std::cerr << "Received icmp echo request packet, but the checksum is wrong, ignoring" << std::endl;
           return;
         }
-        uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(ip_hdr) + sizeof(icmp_echo_hdr)];
+        uint8_t out_buf[sizeof(ethernet_hdr) + ip_packet.size()];
         ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
         memcpy(out_e_hdr->ether_dhost, s_mac, ETHER_ADDR_LEN);
         memcpy(out_e_hdr->ether_shost, d_mac, ETHER_ADDR_LEN);
@@ -178,14 +178,11 @@ if (((icmp_hdr *) (ip_packet.data() + sizeof(ip_hdr)))->icmp_type == 0x08) {
         out_ip_h->ip_sum = cksum(out_ip_h, sizeof(ip_hdr));
         out_ip_h->ip_dst = ip_h->ip_src;
         out_ip_h->ip_src = ip_h->ip_dst;
-        icmp_echo_hdr * out_icmp_h = (icmp_echo_hdr *) (out_buf + sizeof(ethernet_hdr) + sizeof(ip_hdr));
+        icmp_hdr * out_icmp_h = (icmp_hdr *) (out_buf + sizeof(ethernet_hdr) + sizeof(ip_hdr));
         out_icmp_h->icmp_type = 0x00;
         out_icmp_h->icmp_code = 0x00;
         out_icmp_h->icmp_sum = 0x00;
-        out_icmp_h->icmp_sum = cksum(out_icmp_h, sizeof(icmp_echo_hdr));
-        out_icmp_h->icmp_id = icmp_h->icmp_id;
-        out_icmp_h->icmp_seq = icmp_h->icmp_seq;
-        memcpy(out_icmp_h->data, icmp_h->data, ICMP_DATA_SIZE);
+        out_icmp_h->icmp_sum = cksum(out_buf + sizeof(ethernet_hdr) + sizeof(ip_hdr), ip_packet.size() - sizeof(ip_hdr));
         Buffer out_packet(out_buf, out_buf + sizeof(out_buf));
         sendPacket(out_packet, iface->name);
         return;
@@ -204,7 +201,6 @@ if (((icmp_hdr *) (ip_packet.data() + sizeof(ip_hdr)))->icmp_type == 0x08) {
     std::cerr << "Received ip packet, but not route entry for it, ignoring" << std::endl;
     return;
   }
-  std::cerr << result_route_entry.ifName << "aldfj" << std::endl;
   const Interface * result_iface = findIfaceByName(result_route_entry.ifName);
   if (result_iface == nullptr) {
     std::cerr << "Received ip packet, but the corresponding interface is unknown, ignoring" << std::endl;
@@ -223,6 +219,7 @@ if (((icmp_hdr *) (ip_packet.data() + sizeof(ip_hdr)))->icmp_type == 0x08) {
 
   std::shared_ptr<ArpEntry> result_arp_entry = m_arp.lookup(out_ip_h->ip_dst);
   if (result_arp_entry == nullptr) {
+    std::cerr << "aldfjladskfj" << std::endl;
     m_arp.queueRequest(out_ip_h->ip_dst, Buffer(out_buf, out_buf + sizeof(out_buf)), result_iface->name);
     return;
   }
