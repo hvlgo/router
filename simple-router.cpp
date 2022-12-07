@@ -53,12 +53,11 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
   }
 
   if (ntohs(e_hdr->ether_type) == ethertype_arp) {
-    std::cerr << "this is arp" << std::endl;
     SimpleRouter::handleArpPacket(packet.data() + sizeof(ethernet_hdr), iface, e_hdr->ether_shost);
   }
   else if (ntohs(e_hdr->ether_type) == ethertype_ip) {
-    std::cerr << "this is ipv4" << std::endl;
-    
+    print_hdrs(packet);
+    SimpleRouter::handleIpPacket(packet.data() + size_of(ethernet_hdr), iface, e_hdr->ether_shost);
   }
   else {
     std::cerr << "Received packet, but type is not arp or ipv4, ignoring" << std::endl;
@@ -129,6 +128,73 @@ void SimpleRouter::handleArpPacket(const uint8_t * arp_packet, const Interface *
     std::cerr << "Received arp packet, but opcode is unknown, ignoring" << std::endl;
     return;
   }
+}
+
+void SimpleRouter::handleIpPacket(const uint8_t * ip_packet, const Interface * iface, uint8_t * s_mac) {
+  if (ip_packet.size() < sizeof(ip_hdr)) {
+    std::cerr << "Received ip packet, but the header is truncated, ignoring" << std::endl;
+    return;
+  }
+
+  ip_hdr * ip_h = (ip_hdr *) ip_packet;
+  uint16_t origin_cksum = ip_h->ip_sum;
+  ip_h->ip_sum = 0x0;
+  if (cksum(ip_h, sizeof(ip_hdr)) != origin_cksum) {
+    std::cerr << "Received ip packet, but the checksum is wrong, ignoring" << std::endl;
+    return;
+  }
+
+  if (findIfaceByIp(ip_h->ip_dst) != nullptr) {
+    if (ip_h->ip_p == ip_protocol_tcp || ip_h->ip_p == ip_protocol_udp) {
+      // TODO: send icmp port unreachable
+      return;
+    }
+    else if (ip_h->ip_p == ip_protocol_icmp) {
+      icmp_hdr * icmp_h = (icmp_hdr *) (ip_packet + sizeof(ip_hdr));
+      if (icmp_h->icmp_type == icmp_echo) {
+        
+        return;
+      }
+      else {
+        std::cerr << "Received icmp packet, but the type is unknown, ignoring" << std::endl;
+        return;
+      }
+    }
+  }
+  
+  RoutingTableEntry result_route_entry;
+  try {
+    result_route_entry = m_routingTable.lookup(ip_h->ip_dst);
+  } catch(...) {
+    std::cerr << "Received ip packet, but not route entry for it, ignoring" << std::endl;
+    return;
+  }
+
+  Interface * result_iface = findIfaceByName(result_route_entry.ifName);
+  if (result_iface == nullptr) {
+    std::cerr << "Received ip packet, but the corresponding interface is unknown, ignoring" << std::endl;
+    return;
+  }
+
+  uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(ip_packet)];
+  ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
+  memcpy(out_e_hdr->ether_shost, result_iface->addr.data(), ETHER_ADDR_LEN);
+  out_e_hdr->ether_type = htons(ethertype_ip);
+  memcpy(out_buf + sizeof(ethernet_hdr), ip_packet, sizeof(ip_packet));
+  ip_hdr * out_ip_h = (ip_hdr *) (out_buf + sizeof(ethernet_hdr));
+  out_ip_h->ttl--;
+  out_ip_h->ip_sum = 0x0;
+  out_ip_h->ip_sum = cksum(out_ip_h, sizeof(ip_hdr));
+
+  std::shared_ptr<ArpEntry> result_arp_entry = m_arp.lookup(out_ip_h->ip_dst);
+  if (result_arp_entry == nullptr) {
+    m_arp.queueRequest(out_ip_h->ip_dst, Buffer(out_buf, out_buf + sizeof(out_buf)), result_iface->name);
+    return;
+  }
+  memcpy(out_e_hdr->ether_dhost, result_arp_entry->mac.data(), ETHER_ADDR_LEN);
+  Buffer out_packet(out_buf, out_buf + sizeof(out_buf));
+  sendPacket(out_packet, result_iface->name);
+  return;
 }
 
 //////////////////////////////////////////////////////////////////////////
