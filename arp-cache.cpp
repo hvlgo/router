@@ -50,6 +50,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
       PendingPacket tmp = (*iter)->packets.front();
       ethernet_hdr * e_h = (ethernet_hdr *) tmp.packet.data();
       ip_hdr * ip_h = (ip_hdr *) (tmp.packet.data() + sizeof(ethernet_hdr));
+      std::cout << ip_h->ip_src << std::endl;
       const Interface * iface = m_router.findIfaceByName(m_router.getRoutingTable().lookup(ip_h->ip_src).ifName);
       
       uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(ip_hdr) + sizeof(icmp_t3_hdr)];

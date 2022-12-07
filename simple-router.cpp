@@ -219,6 +219,7 @@ void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * ifa
 
   std::shared_ptr<ArpEntry> result_arp_entry = m_arp.lookup(out_ip_h->ip_dst);
   if (result_arp_entry == nullptr) {
+    std::cerr << findIfaceByIp(out_ip_h->ip_src) << std::endl;
     m_arp.queueRequest(out_ip_h->ip_dst, Buffer(out_buf, out_buf + sizeof(out_buf)), result_iface->name);
     return;
   }
