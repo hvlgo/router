@@ -146,7 +146,7 @@ void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * ifa
     std::cerr << "Received ip packet, but the checksum is wrong, ignoring" << std::endl;
     return;
   }
-
+  ip_h->ip_sum = origin_ip_cksum;
   if (ip_h->ip_ttl <= 1) {
     sendICMPt3Packet(ip_h, 11, 0, iface, s_mac, d_mac);
     return;
@@ -166,6 +166,7 @@ void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * ifa
           std::cerr << "Received icmp echo request packet, but the checksum is wrong, ignoring" << std::endl;
           return;
         }
+        icmp_h->icmp_sum = origin_icmp_cksum;
         uint8_t out_buf[sizeof(ethernet_hdr) + ip_packet.size()];
         ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
         memcpy(out_e_hdr->ether_dhost, s_mac, ETHER_ADDR_LEN);
