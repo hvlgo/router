@@ -158,15 +158,15 @@ void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * ifa
       return;
     }
     else if (ip_h->ip_p == ip_protocol_icmp) {
-      icmp_hdr * icmp_h = (icmp_hdr *) (ip_packet.data() + sizeof(ip_hdr));
-      if (icmp_h->icmp_type == 0x08) {
+if (((icmp_hdr *) (ip_packet.data() + sizeof(ip_hdr)))->icmp_type == 0x08) {
+        icmp_echo_hdr * icmp_h = (icmp_echo_hdr *) (ip_packet.data() + sizeof(ip_hdr));
         uint16_t origin_icmp_cksum = icmp_h->icmp_sum;
         icmp_h->icmp_sum = 0x0;
-        if (cksum(icmp_h, sizeof(icmp_hdr)) != origin_icmp_cksum) {
+        if (cksum(icmp_h, sizeof(icmp_echo_hdr)) != origin_icmp_cksum) {
           std::cerr << "Received icmp echo request packet, but the checksum is wrong, ignoring" << std::endl;
           return;
         }
-        uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(ip_hdr) + sizeof(icmp_hdr)];
+        uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(ip_hdr) + sizeof(icmp_echo_hdr)];
         ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
         memcpy(out_e_hdr->ether_dhost, s_mac, ETHER_ADDR_LEN);
         memcpy(out_e_hdr->ether_shost, d_mac, ETHER_ADDR_LEN);
@@ -178,11 +178,14 @@ void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * ifa
         out_ip_h->ip_sum = cksum(out_ip_h, sizeof(ip_hdr));
         out_ip_h->ip_dst = ip_h->ip_src;
         out_ip_h->ip_src = ip_h->ip_dst;
-        icmp_hdr * out_icmp_h = (icmp_hdr *) (out_buf + sizeof(ethernet_hdr) + sizeof(ip_hdr));
+        icmp_echo_hdr * out_icmp_h = (icmp_echo_hdr *) (out_buf + sizeof(ethernet_hdr) + sizeof(ip_hdr));
         out_icmp_h->icmp_type = 0x00;
         out_icmp_h->icmp_code = 0x00;
         out_icmp_h->icmp_sum = 0x00;
-        out_icmp_h->icmp_sum = cksum(out_icmp_h, sizeof(icmp_hdr));
+        out_icmp_h->icmp_sum = cksum(out_icmp_h, sizeof(icmp_echo_hdr));
+        out_icmp_h->id = icmp_h->id;
+        out_icmp_h->icmp_seq = icmp_h->icmp_seq;
+        memcpy(out_icmp_h->data, icmp_h->data, ICMP_DATA_SIZE);
         Buffer out_packet(out_buf, out_buf + sizeof(out_buf));
         sendPacket(out_packet, iface->name);
         return;
@@ -196,7 +199,6 @@ void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * ifa
   
   RoutingTableEntry result_route_entry;
   try {
-    std::cerr << ip_h->ip_dst << std::endl;
     result_route_entry = m_routingTable.lookup(ip_h->ip_dst);
   } catch(...) {
     std::cerr << "Received ip packet, but not route entry for it, ignoring" << std::endl;
