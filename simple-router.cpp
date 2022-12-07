@@ -183,7 +183,7 @@ if (((icmp_hdr *) (ip_packet.data() + sizeof(ip_hdr)))->icmp_type == 0x08) {
         out_icmp_h->icmp_code = 0x00;
         out_icmp_h->icmp_sum = 0x00;
         out_icmp_h->icmp_sum = cksum(out_icmp_h, sizeof(icmp_echo_hdr));
-        out_icmp_h->id = icmp_h->id;
+        out_icmp_h->icmp_id = icmp_h->icmp_id;
         out_icmp_h->icmp_seq = icmp_h->icmp_seq;
         memcpy(out_icmp_h->data, icmp_h->data, ICMP_DATA_SIZE);
         Buffer out_packet(out_buf, out_buf + sizeof(out_buf));
