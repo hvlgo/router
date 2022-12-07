@@ -48,7 +48,11 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
   for (auto iter = m_arpRequests.begin(); iter != m_arpRequests.end(); ) {
     if ((*iter)->nTimesSent >= MAX_SENT_TIME) {
       PendingPacket tmp = (*iter)->packets.front();
+<<<<<<< HEAD
       Interface * iface = m_router.findIfaceByName(tmp.iface);
+=======
+      const Interface * iface = m_router.findIfaceByName(tmp.iface);
+>>>>>>> d0ec86f8f152bc52ecfcdd7ae034fc6af38f98f6
       ethernet_hdr * e_h = (ethernet_hdr *) tmp.packet.data();
       ip_hdr * ip_h = (ip_hdr *) (tmp.packet.data() + sizeof(ethernet_hdr));
       
