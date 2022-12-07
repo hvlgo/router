@@ -174,10 +174,10 @@ void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * ifa
         memcpy(out_buf + sizeof(ethernet_hdr), ip_packet.data(), ip_packet.size());
         ip_hdr * out_ip_h = (ip_hdr *) (out_buf + sizeof(ethernet_hdr));
         out_ip_h->ip_ttl = 64;
-        out_ip_h->ip_sum = 0x0;
-        out_ip_h->ip_sum = cksum(out_ip_h, sizeof(ip_hdr));
         out_ip_h->ip_dst = ip_h->ip_src;
         out_ip_h->ip_src = ip_h->ip_dst;
+        out_ip_h->ip_sum = 0x0;
+        out_ip_h->ip_sum = cksum(out_ip_h, sizeof(ip_hdr));
         icmp_hdr * out_icmp_h = (icmp_hdr *) (out_buf + sizeof(ethernet_hdr) + sizeof(ip_hdr));
         out_icmp_h->icmp_type = 0x00;
         out_icmp_h->icmp_code = 0x00;
@@ -219,7 +219,6 @@ void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * ifa
 
   std::shared_ptr<ArpEntry> result_arp_entry = m_arp.lookup(out_ip_h->ip_dst);
   if (result_arp_entry == nullptr) {
-    std::cerr << findIfaceByIp(out_ip_h->ip_src) << std::endl;
     m_arp.queueRequest(out_ip_h->ip_dst, Buffer(out_buf, out_buf + sizeof(out_buf)), result_iface->name);
     return;
   }
@@ -241,10 +240,10 @@ void SimpleRouter::sendICMPt3Packet(ip_hdr * ip_h, uint8_t out_icmp_type, uint8_
   out_ip_h->ip_len = sizeof(ip_hdr) + sizeof(icmp_t3_hdr);
   out_ip_h->ip_ttl = 64;
   out_ip_h->ip_p = ip_protocol_icmp;
-  out_ip_h->ip_sum = 0x0;
-  out_ip_h->ip_sum = cksum(out_ip_h, sizeof(ip_hdr));
   out_ip_h->ip_dst = ip_h->ip_src;
   out_ip_h->ip_src = ip_h->ip_dst;
+  out_ip_h->ip_sum = 0x0;
+  out_ip_h->ip_sum = cksum(out_ip_h, sizeof(ip_hdr));
   icmp_t3_hdr * out_icmp_h = (icmp_t3_hdr *) (out_buf + sizeof(ethernet_hdr) + sizeof(ip_hdr));
   out_icmp_h->icmp_type = out_icmp_type;
   out_icmp_h->icmp_code = out_icmp_code;

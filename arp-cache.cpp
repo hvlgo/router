@@ -50,25 +50,22 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
       PendingPacket tmp = (*iter)->packets.front();
       ethernet_hdr * e_h = (ethernet_hdr *) tmp.packet.data();
       ip_hdr * ip_h = (ip_hdr *) (tmp.packet.data() + sizeof(ethernet_hdr));
-      std::cout << ip_h->ip_src << std::endl;
       const Interface * iface = m_router.findIfaceByName(m_router.getRoutingTable().lookup(ip_h->ip_src).ifName);
-      
       uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(ip_hdr) + sizeof(icmp_t3_hdr)];
       ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
       memcpy(out_e_hdr->ether_dhost, e_h->ether_shost, ETHER_ADDR_LEN);
       memcpy(out_e_hdr->ether_shost, iface->addr.data(), ETHER_ADDR_LEN);
       out_e_hdr->ether_type = htons(ethertype_ip);
-      std::cout << "out time" << std::endl;
 
       memcpy(out_buf + sizeof(ethernet_hdr), ip_h, sizeof(ip_hdr));
       ip_hdr * out_ip_h = (ip_hdr *) (out_buf + sizeof(ethernet_hdr));
       out_ip_h->ip_len = sizeof(ip_hdr) + sizeof(icmp_t3_hdr);
       out_ip_h->ip_ttl = 64;
       out_ip_h->ip_p = ip_protocol_icmp;
-      out_ip_h->ip_sum = 0x0;
-      out_ip_h->ip_sum = cksum(out_ip_h, sizeof(ip_hdr));
       out_ip_h->ip_dst = ip_h->ip_src;
       out_ip_h->ip_src = iface->ip;
+      out_ip_h->ip_sum = 0x0;
+      out_ip_h->ip_sum = cksum(out_ip_h, sizeof(ip_hdr));
       icmp_t3_hdr * out_icmp_h = (icmp_t3_hdr *) (out_buf + sizeof(ethernet_hdr) + sizeof(ip_hdr));
       out_icmp_h->icmp_type = 0x03;
       out_icmp_h->icmp_code = 0x01;
