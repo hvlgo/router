@@ -47,17 +47,17 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
 
   for (auto iter = m_arpRequests.begin(); iter != m_arpRequests.end(); ) {
     if ((*iter)->nTimesSent >= MAX_SENT_TIME) {
-      std::cout << "out time" << std::endl;
       PendingPacket tmp = (*iter)->packets.front();
-      const Interface * iface = m_router.findIfaceByName(tmp.iface);
       ethernet_hdr * e_h = (ethernet_hdr *) tmp.packet.data();
       ip_hdr * ip_h = (ip_hdr *) (tmp.packet.data() + sizeof(ethernet_hdr));
+      const Interface * iface = m_router.findIfaceByName(m_router.getRoutingTable().lookup(ip_h->ip_src).ifName);
       
       uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(ip_hdr) + sizeof(icmp_t3_hdr)];
       ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
       memcpy(out_e_hdr->ether_dhost, e_h->ether_shost, ETHER_ADDR_LEN);
       memcpy(out_e_hdr->ether_shost, iface->addr.data(), ETHER_ADDR_LEN);
       out_e_hdr->ether_type = htons(ethertype_ip);
+      std::cout << "out time" << std::endl;
 
       memcpy(out_buf + sizeof(ethernet_hdr), ip_h, sizeof(ip_hdr));
       ip_hdr * out_ip_h = (ip_hdr *) (out_buf + sizeof(ethernet_hdr));
