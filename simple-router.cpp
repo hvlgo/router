@@ -57,7 +57,7 @@ SimpleRouter::handlePacket(const Buffer& packet, const std::string& inIface)
   }
   else if (ntohs(e_hdr->ether_type) == ethertype_ip) {
     print_hdrs(packet);
-    SimpleRouter::handleIpPacket(packet.data() + size_of(ethernet_hdr), iface, e_hdr->ether_shost);
+    SimpleRouter::handleIpPacket(packet.data() + sizeof(ethernet_hdr), iface, e_hdr->ether_shost);
   }
   else {
     std::cerr << "Received packet, but type is not arp or ipv4, ignoring" << std::endl;
@@ -102,18 +102,18 @@ void SimpleRouter::handleArpPacket(const uint8_t * arp_packet, const Interface *
     arp_hdr * out_arp_h = (arp_hdr *) (out_buf + sizeof(ethernet_hdr));
     memcpy(out_arp_h, arp_h, sizeof(arp_hdr));
     out_arp_h->arp_op = htons(arp_op_reply);
-    memcpy(out_arp_h->sha, iface->addr.data(), ETHER_ADDR_LEN);
-    out_arp_h->sip = iface->ip;
+    memcpy(out_arp_h->arp_sha, iface->addr.data(), ETHER_ADDR_LEN);
+    out_arp_h->arp_sip = iface->ip;
     memcpy(out_arp_h->arp_tha, arp_h->arp_sha, ETHER_ADDR_LEN);
-    out_arp_h->tip = arp_h->arp_sip;
+    out_arp_h->arp_tip = arp_h->arp_sip;
 
     const Buffer out_packet(out_buf, out_buf + sizeof(out_buf));
     SimpleRouter::sendPacket(out_packet, iface->name);
     return;
   }
   else if (ntohs(opcode) == arp_op_reply) {
-    uint32_t arp_s_ip = arp_h->sip;
-    uint8_t * arp_s_mac = arp_h->sha;
+    uint32_t arp_s_ip = arp_h->arp_sip;
+    uint8_t * arp_s_mac = arp_h->arp_sha;
     Buffer arp_s_mac_buf(arp_s_mac, arp_s_mac + ETHER_ADDR_LEN);
     std::shared_ptr<ArpRequest> arp_request = m_arp.insertArpEntry(arp_s_mac_buf, arp_s_ip);
     for (PendingPacket pending_packet : arp_request->packets) {
@@ -170,7 +170,7 @@ void SimpleRouter::handleIpPacket(const uint8_t * ip_packet, const Interface * i
     return;
   }
 
-  Interface * result_iface = findIfaceByName(result_route_entry.ifName);
+  const Interface * result_iface = findIfaceByName(result_route_entry.ifName);
   if (result_iface == nullptr) {
     std::cerr << "Received ip packet, but the corresponding interface is unknown, ignoring" << std::endl;
     return;
@@ -182,7 +182,7 @@ void SimpleRouter::handleIpPacket(const uint8_t * ip_packet, const Interface * i
   out_e_hdr->ether_type = htons(ethertype_ip);
   memcpy(out_buf + sizeof(ethernet_hdr), ip_packet, sizeof(ip_packet));
   ip_hdr * out_ip_h = (ip_hdr *) (out_buf + sizeof(ethernet_hdr));
-  out_ip_h->ttl--;
+  out_ip_h->ip_ttl--;
   out_ip_h->ip_sum = 0x0;
   out_ip_h->ip_sum = cksum(out_ip_h, sizeof(ip_hdr));
 

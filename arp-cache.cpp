@@ -53,7 +53,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
     }
 
     uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(arp_hdr)];
-    Interface * s_interface = m_router.findIfaceByName((*iter)->packets.front().iface);
+    const Interface * s_interface = m_router.findIfaceByName((*iter)->packets.front().iface);
     ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
     memcpy(out_e_hdr->ether_dhost, broadcast_mac, ETHER_ADDR_LEN);
     memcpy(out_e_hdr->ether_shost, s_interface->addr.data(), ETHER_ADDR_LEN);

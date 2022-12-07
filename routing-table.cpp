@@ -36,7 +36,7 @@ RoutingTable::lookup(uint32_t ip) const
   RoutingTableEntry result;
   bool flag = false;
   for (auto routingEntry : m_entries) {
-    if (ip & routingEntry.mask == routingEntry.dest & routingEntry.mask) {
+    if ((ip & routingEntry.mask) == (routingEntry.dest & routingEntry.mask)) {
       if (!flag) {
         flag = true;
       }
