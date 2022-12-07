@@ -196,12 +196,13 @@ void SimpleRouter::handleIpPacket(const Buffer& ip_packet, const Interface * ifa
   
   RoutingTableEntry result_route_entry;
   try {
+    std::cerr << ip_h->ip_dst << std::endl;
     result_route_entry = m_routingTable.lookup(ip_h->ip_dst);
   } catch(...) {
     std::cerr << "Received ip packet, but not route entry for it, ignoring" << std::endl;
     return;
   }
-
+  std::cerr << result_route_entry.ifName << "aldfj" << std::endl;
   const Interface * result_iface = findIfaceByName(result_route_entry.ifName);
   if (result_iface == nullptr) {
     std::cerr << "Received ip packet, but the corresponding interface is unknown, ignoring" << std::endl;

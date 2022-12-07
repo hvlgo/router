@@ -34,14 +34,15 @@ RoutingTable::lookup(uint32_t ip) const
 
   // FILL THIS IN
   RoutingTableEntry result;
+  result.mask = 0;
   bool flag = false;
   for (auto routingEntry : m_entries) {
     if ((ip & routingEntry.mask) == (routingEntry.dest & routingEntry.mask)) {
       if (!flag) {
         flag = true;
       }
-      if (routingEntry.mask > result.mask) {
-        result = routingEntry;
+      if (routingEntry.mask >= result.mask) {
+        result = RoutingTableEntry(routingEntry);
       }
     }
   }
