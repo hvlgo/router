@@ -121,13 +121,15 @@ void SimpleRouter::handleArpPacket(const Buffer& packet, const Interface * iface
     uint8_t * arp_s_mac = arp_h->arp_sha;
     Buffer arp_s_mac_buf(arp_s_mac, arp_s_mac + ETHER_ADDR_LEN);
     std::shared_ptr<ArpRequest> arp_request = m_arp.insertArpEntry(arp_s_mac_buf, arp_s_ip);
-    for (PendingPacket pending_packet : arp_request->packets) {
-      ethernet_hdr * out_e_hdr = (ethernet_hdr *) pending_packet.packet.data();
-      memcpy(out_e_hdr->ether_shost, findIfaceByName(pending_packet.iface)->addr.data(), ETHER_ADDR_LEN);
-      memcpy(out_e_hdr->ether_dhost, arp_s_mac, ETHER_ADDR_LEN);
-      SimpleRouter::sendPacket(pending_packet.packet, pending_packet.iface);
+    if (arp_request != nullptr) {
+      for (PendingPacket pending_packet : arp_request->packets) {
+        ethernet_hdr * out_e_hdr = (ethernet_hdr *) pending_packet.packet.data();
+        memcpy(out_e_hdr->ether_shost, findIfaceByName(pending_packet.iface)->addr.data(), ETHER_ADDR_LEN);
+        memcpy(out_e_hdr->ether_dhost, arp_s_mac, ETHER_ADDR_LEN);
+        SimpleRouter::sendPacket(pending_packet.packet, pending_packet.iface);
+      }
+      m_arp.removeRequest(arp_request);
     }
-    m_arp.removeRequest(arp_request);
     return;
   }
   else {
@@ -232,6 +234,7 @@ void SimpleRouter::handleIpPacket(const Buffer& packet, const Interface * iface)
   out_e_hdr->ether_type = htons(ethertype_ip);
   Buffer out_packet(out_buf, out_buf + sizeof(out_buf));
   sendPacket(out_packet, result_iface->name);
+  result_arp_entry.reset();
   return;
 }
 
