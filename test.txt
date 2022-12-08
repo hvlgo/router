@@ -1,0 +1,43 @@
+ETHERNET header:
+        destination: 73:77:30:2D:65:74
+        source: B2:7F:BD:D4:53:D1
+        type: 2048
+IP header:
+        version: 4
+        header length: 5
+        type of service: 0
+        length: 84
+        id: 64462
+        fragment flag: DF
+        fragment offset: 0
+        TTL: 63
+        protocol: 1
+        checksum: 52081
+        source: 10.0.1.100
+        destination: 192.168.2.3
+ICMP header:
+        type: 8
+        code: 0
+        checksum: 20972
+out time
+ETHERNET header:
+        destination: B2:7F:BD:D4:53:D1
+        source: 72:9A:8D:E1:FB:CD
+        type: 2048
+IP header:
+        version: 4
+        header length: 5
+        type of service: 0
+        length: 56
+        id: 64462
+        fragment flag: DF
+        fragment offset: 0
+        TTL: 64
+        protocol: 1
+        checksum: 37416
+        source: 10.0.1.1
+        destination: 10.0.1.100
+ICMP header:
+        type: 3
+        code: 1
+        checksum: 17722
