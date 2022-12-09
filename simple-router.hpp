@@ -43,10 +43,13 @@ public:
   void
   handlePacket(const Buffer& packet, const std::string& inIface);
 
+  /* handle arp packet */
   void handleArpPacket(const Buffer& packet, const Interface * iface);
 
+  /* handle ip packet */
   void handleIpPacket(const Buffer& packet, const Interface * iface);
 
+  /* send icmp type 3 packet */
   void sendICMPt3Packet(const Buffer& packet, uint8_t out_icmp_type, uint8_t out_icmp_code, const Interface * iface);
 
   /**

@@ -32,6 +32,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
 {
 
   // FILL THIS IN
+  // erase out unvalid entries
   for (auto iter = m_cacheEntries.begin(); iter != m_cacheEntries.end(); ) {
     if (!(*iter)->isValid) {
       iter = m_cacheEntries.erase(iter);
@@ -48,6 +49,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
   for (auto iter = m_arpRequests.begin(); iter != m_arpRequests.end(); ) {
     if ((*iter)->nTimesSent >= MAX_SENT_TIME) {
       uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(ip_hdr) + sizeof(icmp_t3_hdr)];
+      // for every pending packet, send out icmp host unreachable
       for (PendingPacket p : (*iter)->packets) {
         ethernet_hdr * e_h = (ethernet_hdr *) p.packet.data();
         ip_hdr * ip_h = (ip_hdr *) (p.packet.data() + sizeof(ethernet_hdr));
@@ -76,7 +78,7 @@ ArpCache::periodicCheckArpRequestsAndCacheEntries()
       iter = m_arpRequests.erase(iter);
       continue;
     }
-
+    // send arp request to get the dst mac of pending packets
     uint8_t out_buf[sizeof(ethernet_hdr) + sizeof(arp_hdr)];
     const Interface * s_interface = m_router.findIfaceByName((*iter)->packets.front().iface);
     ethernet_hdr * out_e_hdr = (ethernet_hdr *) out_buf;
